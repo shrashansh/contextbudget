@@ -3,7 +3,7 @@
 A tool that shows you which parts of a codebase to send to an AI, what that costs, and
 what got left out.
 
-**Live:** [paste vercel url]
+**Live:** [https://contextbudget-sigma.vercel.app/]
 **Write-up:** [SUBMISSION.md](SUBMISSION.md) is the assignment submission. Start there.
 
 ---

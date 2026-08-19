@@ -1,9 +1,9 @@
-/* ContextBudget — Lambe-Lambe Brasileiro.
+/* ContextBudget - Lambe-Lambe Brasileiro.
    Wheat-paste street poster: bold uppercase display type as the primary visual
    element, 4px ink borders, HARD shadows with no blur, 8px radius, dense
    informational layout, warm paper ground with a woodcut hatch.
 
-   Light only — the spec marks dark mode as unsupported, so `color-scheme: light`
+   Light only - the spec marks dark mode as unsupported, so `color-scheme: light`
    is declared explicitly rather than leaving native controls to guess.
 
    ONE RULE that keeps this readable as a tool: five colours are RESERVED for data
@@ -14,7 +14,7 @@
   color-scheme: light;
 
   /* --- reserved: data only --- */
-  --tier-full: #ff0000;      /* body tokens — the scarce resource */
+  --tier-full: #ff0000;      /* body tokens - the scarce resource */
   --tier-skeleton: #ffd700;  /* docstring first line */
   --tier-signature: #0066cc; /* signature only */
   --pin: #006400;            /* kept by hand */
@@ -48,7 +48,7 @@ html, body {
   font-family: var(--font-mono-stack);
   font-size: 14px;
   line-height: 1.6;
-  /* woodcut hatch — the paste-up texture, faint enough not to fight the data */
+  /* woodcut hatch - the paste-up texture, faint enough not to fight the data */
   background-image:
     repeating-linear-gradient(45deg, rgba(13,13,13,0.035) 0 2px, transparent 2px 7px),
     repeating-linear-gradient(-45deg, rgba(13,13,13,0.025) 0 2px, transparent 2px 9px);
@@ -295,7 +295,7 @@ h1, h2, h3,
 }
 .cb-try-score[data-bad="true"] { background: var(--tier-full); color: var(--paper-2); }
 
-/* glossary table — dense and scannable, per the style's informational density */
+/* glossary table - dense and scannable, per the style's informational density */
 .cb-gloss { width: 100%; border-collapse: collapse; border: var(--border-thin); margin: 4px 0 10px; }
 .cb-gloss th, .cb-gloss td {
   border: 2px solid var(--ink); padding: 7px 10px;

@@ -32,7 +32,7 @@ export function loadSnapshot(repo: string): Snapshot {
 }
 
 // Every id in a request must exist in the snapshot. Reject unknown ids rather
-// than skipping them (BUILD §5) — an unknown id is a hostile or corrupt input.
+// than skipping them (BUILD §5) - an unknown id is a hostile or corrupt input.
 export function validateIds(snapshot: Snapshot, ids: string[]): string | null {
   const known = new Set(snapshot.symbols.map((s) => s.id));
   for (const id of ids) {
@@ -41,7 +41,7 @@ export function validateIds(snapshot: Snapshot, ids: string[]): string | null {
   return null;
 }
 
-// Distinct file paths present in the snapshot — used to key read_file lookups.
+// Distinct file paths present in the snapshot - used to key read_file lookups.
 export function snapshotFiles(snapshot: Snapshot): string[] {
   const files = new Set(snapshot.symbols.map((s) => s.file));
   return [...files].sort();

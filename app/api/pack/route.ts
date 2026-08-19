@@ -55,7 +55,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     const result = pack(snapshot, { repo: req.repo, task: req.task, budget: req.budget, pins, evicts });
     return NextResponse.json(result);
   } catch (e) {
-    // pack() throws the §3 refusal when tokens are uncounted — surface it clearly.
+    // pack() throws the §3 refusal when tokens are uncounted - surface it clearly.
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json({ error: msg }, { status: 422 });
   }

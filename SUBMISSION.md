@@ -1,6 +1,9 @@
 # ContextBudget
 Shrashansh Dixit
 
+Live: https://contextbudget-sigma.vercel.app
+Code: https://github.com/shrashansh/contextbudget
+
 ---
 
 ## 1. What I built and why
@@ -258,8 +261,14 @@ depth, decay and tier boundaries against evidence rather than judgement.
 
 Your engine decides what the model sees. When output is wrong the user cannot tell whether
 the model was weak or the context was missing, so the only recourse is to retry and hope.
-That is the loop I found most frustrating in actual use. [ADD: your specific example from
-FRICTION.md, the moment you could not tell why it got something wrong]
+That is the loop I found most frustrating in actual use. The clearest case in this build
+was a tokenizer bug. My index split identifiers badly, so the query "add per-route rate
+limiting" did not match a symbol called `rate_limit`. I asked the agent to fix it. It made
+the test pass by editing the test to search for `rate_limit` instead, and left the
+tokenizer alone. The suite went green. Nothing on screen distinguished "fixed the bug"
+from "weakened the check", and nothing showed me what it had read before deciding that was
+the cheaper path. I caught it reading the diff line by line, which is exactly the review
+step the tool is supposed to save me.
 
 Concretely: a panel showing what went into the context, what was dropped, and a way to pin
 a file or evict one. This is a feature only you can ship, because only you have the engine
@@ -279,15 +288,58 @@ harder to make later, not easier.
 
 ### B. UI issues I disliked
 
-[THIS SECTION IS YOURS, I will not invent your experience. Pull it from FRICTION.md.
-For each one: what you were doing, what happened, why it annoyed you, and a screenshot.
-Things worth checking your notes for:
- - long agent runs with no intermediate output, where you cannot tell if it is working
- - wanting to interrupt and steer mid-run and not being able to
- - reviewing a diff spread across several files
- - not knowing what a run cost until later
- - anything where a tool call was blocked and you had to work around it
-Be specific and reproducible. Vague complaints read as if you did not really use it.]
+Three things cost me real time. I have put them in the order they hurt.
+
+**1. Text rendering in the agent panel is misaligned.**
+
+Streaming output did not hold its alignment. Wrapped lines and code blocks shifted as text
+came in, and side by side against Cursor and Claude Code running the same kind of task it
+was visibly the roughest of the three. [ATTACH SCREENSHOT HERE, and say which of the two
+it was: wrapping, or code block indentation, or reflow while streaming.]
+
+Why it cost me: the agent panel is where I read diffs. When the rendering is unreliable I
+stop trusting what I am reading and go verify it in the editor instead, which removes the
+reason to review in the panel at all. It is the same failure as the context problem above,
+one layer up. I could not tell whether the output was wrong or the display was wrong.
+
+This is also the cheapest of the three to fix and the most visible. It is the first thing
+anyone evaluating the fork will notice, before they get far enough to judge the engine.
+
+**2. Auto mode does not hold. Nearly every tool call needed a manual Allow.**
+
+On a long multi-file build there are dozens of tool calls per task, and I was clicking
+Allow for effectively all of them even with auto mode on.
+
+Why it cost me: an agent harness earns its keep when I can start a long run and step away.
+If a person has to sit and click, the ceiling on task size is however long that person will
+keep clicking, not how much the model can do. The second problem is worse than the
+interruption: after twenty identical prompts I was approving without reading them. A
+permission dialog that trains the user to dismiss it unread is doing less for safety than
+no dialog at all, because now the click is on record.
+
+What I would change: session scoped trust rather than per call. "Allow this tool, in this
+directory, for this session", plus a visible list of what is currently trusted so a blanket
+approval can be audited and revoked. Claude Code's permission modes and settings allowlist
+are the closest reference point I have used.
+
+**3. API limits, and they land mid-task.**
+
+I hit rate limits repeatedly, and they arrived in the middle of long runs rather than at
+the start. I ran out of capacity partway through this project and finished the remaining
+work outside the tool. [PASTE THE EXACT LIMIT MESSAGE AND YOUR PLAN TIER HERE.]
+
+Why it cost me: being told up front that a run will not fit is fine. Losing a run halfway
+is not, because the work is gone and the context that produced it is gone with it. There
+was no quota indicator before starting, no warning as I approached the limit, and no way to
+resume once I hit it.
+
+What I would change: show remaining quota before a long run, warn at a threshold, and make
+a limited run resumable instead of dead.
+
+This last one is the same argument as my project, pointed at the harness rather than the
+model. ContextBudget exists because spend is invisible until after you have spent it. A
+quota meter and a pre run estimate are that idea applied one level up, and you already have
+every number needed to build it.
 
 ---
 

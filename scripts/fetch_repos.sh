@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Fetch the repos ContextBudget indexes. Run once, locally.
-# vendor/ is gitignored — only snapshots/*.json is committed.
+# vendor/ is gitignored - only snapshots/*.json is committed.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -33,7 +33,7 @@ mkdir -p snapshots
     echo "## $r"
     echo
     echo '```'
-    cat "vendor/$r/LICENSE"* 2>/dev/null || echo "LICENSE not found — check upstream before shipping"
+    cat "vendor/$r/LICENSE"* 2>/dev/null || echo "LICENSE not found - check upstream before shipping"
     echo '```'
   done
 } > snapshots/ATTRIBUTION.md

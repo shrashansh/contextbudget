@@ -1,11 +1,11 @@
 // Cost is a PROJECTION, not a bill (BUILD.md §6). The demo runs on Gemini's free
-// tier, so real spend is $0 — but showing "$0" throws away the product's point.
+// tier, so real spend is $0 - but showing "$0" throws away the product's point.
 // Price the pack against published rates for several models instead.
 //
 // CRITICAL: gemini-3.6-flash reasons by default and bills thinking as output.
 // Measured on a one-word reply: prompt=6, candidates=1, thoughts=92, total=99.
 // Thinking was 93% of the turn. Output = candidates + thoughts, never candidates
-// alone — that undercounts by an order of magnitude.
+// alone - that undercounts by an order of magnitude.
 
 export interface GeminiUsage {
   promptTokenCount?: number;
@@ -34,7 +34,7 @@ export const SERVING_MODEL = "gemini-3.5-flash-lite";
 const RATES: Record<string, [number, number]> = {
   "claude-opus-5": [5, 25],
   "claude-sonnet-5": [3, 15],
-  "gemini-3.5-flash-lite": [0, 0], // free tier — the model actually serving turns
+  "gemini-3.5-flash-lite": [0, 0], // free tier - the model actually serving turns
 };
 
 export function promptTokens(u: GeminiUsage): number {

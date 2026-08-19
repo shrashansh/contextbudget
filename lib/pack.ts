@@ -1,5 +1,5 @@
 // ContextBudget packer (Milestone 2). Consumes the frozen snapshot shape in
-// BUILD.md §2 and produces a budget-constrained selection. Pure — no network,
+// BUILD.md §2 and produces a budget-constrained selection. Pure - no network,
 // no token-counting calls. Counts come precomputed in the snapshot (BUILD §3).
 
 export type Tier = "signature" | "skeleton" | "full";
@@ -239,7 +239,7 @@ export interface HopMeasurement {
 }
 
 // Measure how many non-seed symbols expansion reaches at each hop depth. This is
-// pure-graph — works on uncounted snapshots, so hop depth can be chosen by
+// pure-graph - works on uncounted snapshots, so hop depth can be chosen by
 // measurement (BUILD.md §4) before any API key exists.
 export function measureHopDepth(
   snapshot: Snapshot,
@@ -258,7 +258,7 @@ export function measureHopDepth(
     const vals = [...contrib.values()].map((c) => c.score).sort((a, b) => a - b);
     const n = [...contrib.keys()].filter((id) => !seedSet.has(id)).length;
     recovered.set(d, n);
-    // Score spread: ratio of distinct contribution values — a tie-band means
+    // Score spread: ratio of distinct contribution values - a tie-band means
     // the budget cut is arbitrary. Spread > ~0 means distinguishable ranks.
     spread.set(d, vals.length ? new Set(vals.map((v) => v.toFixed(4))).size / vals.length : 0);
     if (n > best.recovered) best = { depth: d, recovered: n };
@@ -320,13 +320,13 @@ export function pack(
 
   // Pins: admitted first and preferred at `full`, but they DO NOT get to break
   // the budget. Measured before this guard: budget 4000 with 6 large pins produced
-  // a 23,563-token pack reported as compliant — a 5.9x overrun of the one invariant
+  // a 23,563-token pack reported as compliant - a 5.9x overrun of the one invariant
   // this product claims to hold.
   //
   // A pin means "I want this", so degrade the tier rather than drop it: full ->
   // skeleton -> signature, taking whichever fits. Only if even the signature does
   // not fit is the pin evicted, with a reason saying so. The degradation is
-  // reported so the UI can show it — a pin that could not be honoured at full IS
+  // reported so the UI can show it - a pin that could not be honoured at full IS
   // the tradeoff this product exists to surface.
   for (const id of pinSet) {
     const s = byId.get(id)!;

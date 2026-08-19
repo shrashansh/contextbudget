@@ -1,7 +1,7 @@
 // ContextBudget eval scorer (BUILD.md §4.5). Ground-truth labels in tasks.json
 // were derived by reading the code, never from the retriever. Reports recall@k
 // on RANKED order (k=20,50) per task and averaged, split class vs func/method,
-// for BM25-only and BM25+graph at depths 1,2,3 — for BOTH the pre-§4 single-field
+// for BM25-only and BM25+graph at depths 1,2,3 - for BOTH the pre-§4 single-field
 // BM25 and the post-§4 field-weighted BM25 so the change can be judged.
 //
 // Scoring is on ranking, not budget: recall@budget needs token counts and every
@@ -33,7 +33,7 @@ interface RankConfig {
 
 // Reciprocal Rank Fusion (BUILD §4): rank separately by BM25 and by graph
 // contribution, then score each symbol as sum of 1/(60 + rank) across the two
-// lists. Scale-free — a weak lexical match no longer outranks every
+// lists. Scale-free - a weak lexical match no longer outranks every
 // graph-discovered symbol the way max() does on incommensurable scales.
 function rrfScore(bmRanks: Map<string, number>, graphRanks: Map<string, number>): Map<string, number> {
   const K = 60;
@@ -110,7 +110,7 @@ function avg(nums: number[]): number {
 // more than a hundred skeletons), so the metric that matters is: at budget B,
 // are the expected symbols present AT FULL tier? Greedily fill by rank/score,
 // promoting toward full, and count which expected labels reach full.
-// Needs per-symbol token counts — activates once snapshots are tokensCounted:true.
+// Needs per-symbol token counts - activates once snapshots are tokensCounted:true.
 function recallAtBudgetFull(repo: string, budget: number, cfg: RankConfig): number {
   const snap = loadSnapshot(repo);
   if (!snap.tokensCounted) {
@@ -152,7 +152,7 @@ function printTables(report: Report, fieldWeightedLabel: "single-field" | "field
     const k50: number[] = [];
     for (const repo of repos) {
       const taskResults = report.results.get(cfg.label)!;
-      // Aggregate only the tasks for this repo — taskResults holds both repos.
+      // Aggregate only the tasks for this repo - taskResults holds both repos.
       const repoTasks = TASKS.filter((t: { repo: string }) => t.repo === repo)
         .map((t: { task: string }) => taskResults.get(t.task))
         .filter(Boolean);
@@ -267,7 +267,7 @@ function main(): void {
     console.log(`HOP-DEPTH VERDICT (RRF): best depth = ${best} (avg r@20=${rrfDepth[best - 1].toFixed(3)})`);
   }
 
-  // Hop-depth verdict under max() — the config that SHIPS. Justifies maxHops.
+  // Hop-depth verdict under max() - the config that SHIPS. Justifies maxHops.
   const maxDepth = [1, 2, 3].map((d) => {
     const m = reportAfter.results.get(`after+max-d${d}`)!;
     return avg([...m.values()].map((r) => r.k20));
@@ -275,7 +275,7 @@ function main(): void {
   maxDepth.forEach((v, i) => console.log(`after+max-d${i + 1} avg r@20=${v.toFixed(3)}`));
   const maxTied = maxDepth.every((v) => Math.abs(v - maxDepth[0]) < 1e-9);
   if (maxTied) {
-    console.log(`HOP-DEPTH VERDICT (max()): depths 1,2,3 all tied at avg r@20=${maxDepth[0].toFixed(3)} — use depth 1 (cheapest)`);
+    console.log(`HOP-DEPTH VERDICT (max()): depths 1,2,3 all tied at avg r@20=${maxDepth[0].toFixed(3)} - use depth 1 (cheapest)`);
   } else {
     let best = 1;
     maxDepth.forEach((v, i) => { if (v > maxDepth[best - 1] + 1e-9) best = i + 1; });

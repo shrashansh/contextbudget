@@ -102,7 +102,14 @@ test("refusal: pack throws on a snapshot with tokensCounted=false", () => {
   assert.throws(() => requireTokens(uncounted), /tokensCounted=false/);
 });
 
-test("budget invariant — pack total under budget (count_tokens on rendered pack)", async () => {
+test("budget invariant - pack total under budget (count_tokens on rendered pack)", async (t) => {
+  if (!process.env.GEMINI_API_KEY) {
+    // The only test here that needs the network. It counts the rendered pack
+    // with the same countTokens endpoint the builder used, so a stale renderer
+    // cannot hide behind the per-symbol numbers already in the snapshot.
+    t.skip("needs GEMINI_API_KEY (counts the rendered pack via Gemini countTokens)");
+    return;
+  }
   for (const repo of ["fastapi", "httpx"] as const) {
     const s = loadSnapshot(repo);
     for (const budget of [4000, 8000, 16000, 32000]) {
@@ -150,7 +157,7 @@ test("expansion earns its place: a graph neighbor BM25 misses is included", () =
   const req = r.selected.find((p) => p.id === "b.py::Request");
   assert.ok(
     req,
-    "FAIL: expansion did not include a graph neighbor BM25 missed — the central claim is dead.",
+    "FAIL: expansion did not include a graph neighbor BM25 missed - the central claim is dead.",
   );
   assert.match(req!.reason, /^graph:/);
 });
@@ -173,7 +180,7 @@ test("hop depth measurement on real graphs (records chosen depth)", () => {
 });
 
 // BUILD §5: snapshot.files[path] must equal the real vendored source
-// byte-for-byte — read_file serves it verbatim, and if it drifts the agent sees
+// byte-for-byte - read_file serves it verbatim, and if it drifts the agent sees
 // wrong imports/module-level code. (Reconstruction was tried and rejected: 160%
 // size, imports missing.)
 test("snapshot.files matches vendored source byte-for-byte", () => {
@@ -194,7 +201,7 @@ test("snapshot.files matches vendored source byte-for-byte", () => {
 // Regression: pins used to bypass the budget entirely. Measured at the time:
 // budget 4000 with 6 large pins -> 23,563 tokens, reported as compliant. The
 // suite was green because the budget test never pinned and the pin test never
-// asserted budget — each passed, their combination did not.
+// asserted budget - each passed, their combination did not.
 test("pins do not break the budget (regression)", () => {
   const s = loadSnapshot("fastapi");
   const big = s.symbols

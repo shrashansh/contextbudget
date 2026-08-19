@@ -44,7 +44,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "messages is required" }, { status: 400 });
   }
   // Trust boundary: client messages are spliced raw into the provider payload,
-  // so whitelist the exact shape {role, parts:[{text}]}. Reject anything else —
+  // so whitelist the exact shape {role, parts:[{text}]}. Reject anything else -
   // do not rely on the provider to enforce our boundary.
   for (const m of req.messages) {
     const msg = m as { role?: unknown; parts?: unknown };
@@ -107,7 +107,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   // Render the pack from the snapshot (client sent ids+tiers only; server
-  // renders the text — trust boundary §5). Reject unknown ids already done above.
+  // renders the text - trust boundary §5). Reject unknown ids already done above.
   const byId = new Map(snapshot.symbols.map((s) => [s.id, s]));
   const packText = req.selection
     .map((item) => {
@@ -136,12 +136,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     generationConfig: {
       maxOutputTokens: MAX_OUTPUT_TOKENS,
       // MEASURED. gemini-3.6-flash thinks unboundedly by default: 62.4s on a bare
-      // prompt, past 120s on an 8k pack — and Vercel Hobby caps functions at 60s,
+      // prompt, past 120s on an 8k pack - and Vercel Hobby caps functions at 60s,
       // so it fails in production even when it works locally. thinkingBudget 512
       // brought that to 8.4s (0 is rejected, 400 INVALID_ARGUMENT).
       //
       // But flash-lite is the better answer: 0.8s, ZERO thinking tokens, and a
-      // SEPARATE free-tier quota pool — 3.6-flash was already 429-exhausted while
+      // SEPARATE free-tier quota pool - 3.6-flash was already 429-exhausted while
       // lite still served. ~15x less quota burn per turn and 48x lower latency.
       // No thinkingConfig needed; lite does not think.
     },
@@ -174,7 +174,7 @@ async function streamTurn(
   try {
     upstream = await fetch(GEMINI_URL, {
       method: "POST",
-      // Key in a header, not the query string — query strings land in access logs.
+      // Key in a header, not the query string - query strings land in access logs.
       headers: { "Content-Type": "application/json", "X-goog-api-key": key },
       body: JSON.stringify(geminiBody),
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
@@ -184,7 +184,7 @@ async function streamTurn(
   }
   if (upstream.status === 429 || upstream.status >= 500 || !upstream.ok) {
     // Surface the provider's descriptive message (truncated) so failures aren't
-    // opaque "provider 400"s — and log it server-side.
+    // opaque "provider 400"s - and log it server-side.
     let detail = "";
     try {
       const j = (await upstream.json()) as { error?: { message?: string } };
@@ -237,7 +237,7 @@ async function streamTurn(
         if (usage) {
           // Gemini streamGenerateContent returns usageMetadata with CUMULATIVE
           // per-chunk counts (running totals), not per-chunk deltas. Overwrite,
-          // never += — summing cumulative counts double-counts output.
+          // never += - summing cumulative counts double-counts output.
           candidatesTokenCount = usage.candidatesTokenCount ?? candidatesTokenCount;
           thoughtsTokenCount = usage.thoughtsTokenCount ?? thoughtsTokenCount;
           promptTokenCount = usage.promptTokenCount ?? promptTokenCount;
@@ -250,7 +250,7 @@ async function streamTurn(
         // Gemini's SSE uses CRLF: frames are separated by "\r\n\r\n", never
         // "\n\n". Splitting on "\n\n" matched nothing, so every frame piled up in
         // the buffer and the trailing flush tried to JSON.parse the whole
-        // concatenated stream — which threw into a silent catch. Result: a 25s
+        // concatenated stream - which threw into a silent catch. Result: a 25s
         // wait and zero output. Normalise first.
         buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, "\n");
         // SSE frames are terminated by a blank line.
@@ -268,14 +268,14 @@ async function streamTurn(
         thoughtsTokenCount,
         totalTokenCount,
       };
-      // A stream that ends with zero usage did not complete — it was cut, timed
+      // A stream that ends with zero usage did not complete - it was cut, timed
       // out, or never started. Reporting a `done` frame with zeros presents a
       // failed turn as a successful one, which is exactly what hid the unbounded
       // -thinking timeout. Fail loudly instead.
       if (totalTokenCount === 0) {
         controller.enqueue(
           encoder.encode(
-            `data: ${JSON.stringify({ type: "error", error: "upstream produced no usage — turn was cut or timed out before completing" })}\n\n`,
+            `data: ${JSON.stringify({ type: "error", error: "upstream produced no usage - turn was cut or timed out before completing" })}\n\n`,
           ),
         );
         controller.close();
@@ -288,7 +288,7 @@ async function streamTurn(
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done", usage, projection: proj, outputTokens: outputTokens(usage) })}\n\n`));
         // Record HERE, not after streamTurn returns. start() runs lazily when the
         // consumer first reads, so a call placed after the return fired with
-        // liveText === "" and nothing was ever recorded — which is why the 429
+        // liveText === "" and nothing was ever recorded - which is why the 429
         // replay fallback had nothing to play back. Success path only.
         if (liveText) recordReplay(repo, turnKey, liveText).catch(() => {});
       }
@@ -341,7 +341,7 @@ function replayResponse(text: string, repo: string, _replay: boolean): NextRespo
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     start(controller) {
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "status", live: false, replay: true, note: "REPLAY — this is a prior recorded run, not a live result" })}\n\n`));
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "status", live: false, replay: true, note: "REPLAY - this is a prior recorded run, not a live result" })}\n\n`));
       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "delta", text })}\n\n`));
       controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done", replay: true })}\n\n`));
       controller.close();

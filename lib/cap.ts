@@ -1,6 +1,6 @@
 // Three-layer spend cap (BUILD.md §5). Plumbing is complete; it activates when
 // the Upstash env vars are present. When absent, checks report disabled rather
-// than failing the request — the deploy sets these vars.
+// than failing the request - the deploy sets these vars.
 
 const GLOBAL_CEILING_CENTS = 2500; // spend is accumulated in CENTS; comparing
 // against 25 tripped the cap at $0.25 // dollars

@@ -130,7 +130,7 @@ def class_symbols(node, file_rel, lines):
     doc = doc_string(node)
     doc_first, doc_rest = split_doc(doc)
     # Class body = class-level code ONLY (attributes, nested classes, etc.),
-    # NOT method definitions — methods are separate symbols (BUILD §3) and
+    # NOT method definitions - methods are separate symbols (BUILD §3) and
     # including them here double-counts the source. Skip the docstring too
     # (it is carried in docFirstLine/docRest).
     class_stmts = [s for s in node.body
@@ -201,7 +201,7 @@ def module_index(files):
         full = f"{repo}.{dotted}" if dotted else repo
         idx[full] = fp
         rev[fp] = full
-        # current package for `from .` — the module itself if it's a package __init__, else parent
+        # current package for `from .` - the module itself if it's a package __init__, else parent
         is_pkg_init = fp.endswith("__init__.py")
         if is_pkg_init:
             pkg[fp] = full
@@ -496,7 +496,7 @@ def _gemini_count_tokens(text):
 def count_tokens_for_symbols(symbols):
     """Fill symbol.tokens via Gemini countTokens (BUILD §3). tokenSource=count_tokens.
 
-    Parallelized with a 10-worker thread pool — countTokens tolerated 10 rapid
+    Parallelized with a 10-worker thread pool - countTokens tolerated 10 rapid
     calls without throttling. Content-hash cache (thread-safe) avoids re-counting.
     Returns True if counted; False when GEMINI_API_KEY is absent.
     """
@@ -506,7 +506,7 @@ def count_tokens_for_symbols(symbols):
     cache_lock = threading.Lock()
     failed = threading.Event()
 
-    # Build the work list: (symbol, tier, text) — ~1500 per repo.
+    # Build the work list: (symbol, tier, text) - ~1500 per repo.
     jobs = []
     for sym in symbols:
         sym["tokens"] = {}
@@ -519,7 +519,7 @@ def count_tokens_for_symbols(symbols):
         sym, tier, text = job
         key = hashlib.sha256(text.encode()).hexdigest()
         # The HTTP call must NOT be inside the lock. Holding cache_lock across the
-        # request serialised the whole 10-worker pool — ~3150 calls ran one at a
+        # request serialised the whole 10-worker pool - ~3150 calls ran one at a
         # time, which is why a rebuild took minutes. Lock only around the dict.
         with cache_lock:
             hit = cache.get(key)
@@ -714,7 +714,7 @@ def validate_snapshot(snapshot):
             ok = False
     # BUILD §3: a method's `def <name>` must NOT appear in its parent class's
     # body (methods are separate symbols; duplicating them double-counts source).
-    # Check only DIRECT methods — direct `def`s are at 4-space indent and are
+    # Check only DIRECT methods - direct `def`s are at 4-space indent and are
     # excluded from the body, while nested-class methods (which legitimately live
     # in the body) are at deeper indent.
     method_ids = {s["id"] for s in snapshot["symbols"] if s["kind"] == "method"}

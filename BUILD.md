@@ -1,9 +1,9 @@
-# BUILD.md — ContextBudget
+# BUILD.md - ContextBudget
 
 This is the authoritative build brief. Follow it in order.
 
 `docs/superpowers/specs/2026-08-17-context-budget-design.md` holds the reasoning
-and the measurements behind these choices — read it for context, but this file
+and the measurements behind these choices - read it for context, but this file
 is the contract. Where they differ, this file wins.
 
 ---
@@ -11,7 +11,7 @@ is the contract. Where they differ, this file wins.
 ## 0. What you are building, and why
 
 A web app that answers one question: *given a repo and a coding task, what
-should you actually feed a model — and what does it cost?*
+should you actually feed a model - and what does it cost?*
 
 Pick a pre-indexed repo, type a task in plain English, set a token budget. The
 app assembles a context pack under that budget, shows every inclusion and
@@ -28,7 +28,7 @@ Two facts that shape everything:
 
 - FastAPI's `fastapi/` package is roughly 192k tokens. A 32k budget is ~6x
   oversubscribed.
-- `fastapi/routing.py` alone is roughly 64k tokens — **twice the largest
+- `fastapi/routing.py` alone is roughly 64k tokens - **twice the largest
   budget, in one file.** So file-level selection cannot work. The unit of
   selection is the symbol.
 
@@ -59,7 +59,7 @@ counts.
   sides disagree, which is the one failure that costs a whole day. If a change
   is genuinely necessary, stop and say so before writing code.
 
-**Git — do not touch it**
+**Git - do not touch it**
 - Do not run `git init`. Do not stage, commit, branch, tag, push, or revert.
 - Do not create or modify `.gitignore`, `.git/`, or any git config.
 - If a task seems to need a git operation, say so and stop. Don't do it.
@@ -93,7 +93,7 @@ type Tier = "signature" | "skeleton" | "full";
 
 type Symbol = {
   id: string;                    // "fastapi/routing.py::APIRouter.add_api_route"
-  file: string;                  // "fastapi/routing.py" — relative to vendor/<repo>/
+  file: string;                  // "fastapi/routing.py" - relative to vendor/<repo>/
   kind: "module" | "class" | "func" | "method";
   name: string;                  // "add_api_route"
   qualname: string;              // "APIRouter.add_api_route"
@@ -105,7 +105,7 @@ type Symbol = {
   body: string;                  // source minus signature and docstring
 
   // Cost of the EXACT rendered string emitted at each tier, separator included.
-  // These are authoritative — the packer uses them directly. See §3 on why
+  // These are authoritative - the packer uses them directly. See §3 on why
   // per-component counts summed together would be wrong.
   tokens: {
     signature: number;           // render(sym, "signature")
@@ -123,7 +123,7 @@ type Symbol = {
 | Module itself | `fastapi/routing.py::<module>` |
 | Top-level function | `fastapi/routing.py::get_request_handler` |
 | Method | `fastapi/routing.py::APIRouter.add_api_route` |
-| Collision (`@overload`, redefinition) | append `#<lineStart>` — deterministic, only on collision |
+| Collision (`@overload`, redefinition) | append `#<lineStart>` - deterministic, only on collision |
 
 **Nested functions are not separate symbols.** A closure or inner `def` stays
 inside its parent's `body`. Only module-level functions and classes, and their
@@ -157,8 +157,8 @@ type PackRequest = {
   repo: "fastapi" | "httpx";
   task: string;
   budget: 4000 | 8000 | 16000 | 32000;
-  pins?: string[];               // Symbol.id — admitted at "full", never evicted
-  evicts?: string[];             // Symbol.id — never admitted
+  pins?: string[];               // Symbol.id - admitted at "full", never evicted
+  evicts?: string[];             // Symbol.id - never admitted
 };
 
 type PackedSymbol = {
@@ -186,32 +186,32 @@ type StepRequest = {
 
 ---
 
-## 3. Milestone 1 — snapshot builder
+## 3. Milestone 1 - snapshot builder
 
-**Prerequisite:** `bash scripts/fetch_repos.sh` — shallow-clones both repos into
+**Prerequisite:** `bash scripts/fetch_repos.sh` - shallow-clones both repos into
 `vendor/` and writes `snapshots/ATTRIBUTION.md`. `vendor/` is already gitignored;
 57 MB of upstream source does not belong in this repo. Run it if `vendor/` is
 empty. This is the one script that runs `git clone`, and it is not a version
-control operation on this repo — §1's git prohibition does not block it.
+control operation on this repo - §1's git prohibition does not block it.
 
 **File:** `scripts/build_snapshot.py`
 **Input:** `vendor/fastapi`, `vendor/httpx`
 **Output:** `snapshots/fastapi.json`, `snapshots/httpx.json`
 
 Parse only the package directory (`vendor/fastapi/fastapi/`,
-`vendor/httpx/httpx/`) — not tests, docs, or examples. That's 912 KB and 328 KB
+`vendor/httpx/httpx/`) - not tests, docs, or examples. That's 912 KB and 328 KB
 respectively, versus 57 MB for the full FastAPI checkout.
 
 **Symbols.** One record per module, class, function, and method, per Section 2.
 Split each symbol into signature / first docstring line / rest of docstring /
 body, because those are priced and admitted independently.
 
-**Two extraction rules that were both got wrong once — verify them explicitly.**
+**Two extraction rules that were both got wrong once - verify them explicitly.**
 
 *`docFirstLine` must be the first NON-EMPTY line.* Python docstrings commonly open on
 the line after the quotes, so `get_docstring(...).split("\n")[0]` yields `""`. Measured
 failure: 98% of fastapi and 100% of httpx symbols ended up with an empty `docFirstLine`
-while `docRest` was populated — which silently made the `skeleton` tier identical to
+while `docRest` was populated - which silently made the `skeleton` tier identical to
 `signature` (median difference: 0 tokens), killed the meter's doc band, and stripped all
 docstring signal out of BM25, which indexes `docFirstLine`. Use
 `ast.get_docstring(node, clean=True)`, then the first line with content.
@@ -220,7 +220,7 @@ docstring signal out of BM25, which indexes `docFirstLine`. Use
 them inside the class body duplicates every one of them. Measured: 200/200 fastapi
 methods and 369/369 httpx methods appeared twice, inflating `totalTokens` to 296,268
 against ~192k of actual source. In a pack this is a correctness bug, not just a
-reporting one — admitting a class at `full` alongside its methods at `full` sends the
+reporting one - admitting a class at `full` alongside its methods at `full` sends the
 same source to the model twice and charges the budget twice. A class body should carry
 class-level code only: its docstring and attributes.
 
@@ -228,24 +228,24 @@ Self-check both: assert `docFirstLine` is non-empty for a symbol known to have a
 docstring, and assert no method's `def <name>` appears in its parent class's `body`.
 
 **Token counts.** Use Gemini's `countTokens` endpoint with
-`model: "gemini-3.6-flash"` (response field is `totalTokens`) — the tokenizer is model-specific and packs are consumed
+`model: "gemini-3.6-flash"` (response field is `totalTokens`) - the tokenizer is model-specific and packs are consumed
 by that model, so counting against anything else produces numbers that don't
 describe the real cost. `countTokens` is free and does not consume TPM quota, which is
 why the whole product can run at zero cost.
 
 Do not use `tiktoken` or any character-count heuristic. `tiktoken` is OpenAI's
 tokenizer; it undercounts Claude by 15-20% and worse on code. This product is a
-token meter — a wrong tokenizer would be its most embarrassing possible bug.
+token meter - a wrong tokenizer would be its most embarrassing possible bug.
 
 **Count rendered tier strings, not components.** Tokenization is not additive:
 `count(a) + count(b) != count(a + b)`, because tokens merge across string
 boundaries. So counting `signature`, `docFirstLine`, `docRest`, and `body`
-separately and summing them to get a tier cost drifts from the real cost — and
+separately and summing them to get a tier cost drifts from the real cost - and
 the budget invariant would then be asserting on a number that isn't the token
 count, passing green while the emitted pack overruns.
 
 Instead: for each symbol, render the exact string that will be emitted at each
-tier — **including the trailing separator between symbols** — and count that.
+tier - **including the trailing separator between symbols** - and count that.
 Three counts per symbol. Making each counted unit self-contained means per-symbol
 counts sum to very nearly the true pack total, which is what keeps the invariant
 honest.
@@ -254,16 +254,16 @@ The UI's signature / docstring / body breakdown is derived by subtraction from
 those three numbers and displayed as approximate. Don't spend calls on it.
 
 Counting happens here, at build time, so the request path makes zero
-token-counting calls. Cache by content hash — there are a few thousand symbols
+token-counting calls. Cache by content hash - there are a few thousand symbols
 and you will re-run this many times. `count_tokens` isn't billed as inference,
 but it is rate-limited, so an uncached re-run is slow rather than expensive.
 
 **If no API credentials are available**, two modes:
 
-`--no-tokens` — emit structure with `tokens: null`, `tokensCounted: false`. The packer
+`--no-tokens` - emit structure with `tokens: null`, `tokensCounted: false`. The packer
 refuses. Use when you want nothing downstream to run.
 
-`--estimate` — emit `chars/4` counts, `tokensCounted: true`, **and
+`--estimate` - emit `chars/4` counts, `tokensCounted: true`, **and
 `tokenSource: "estimate"`**. This unblocks the packer and the whole UI without a key.
 It is not trap #2, because trap #2 is an estimate that *silently* becomes the displayed
 number, and this one cannot be silent:
@@ -273,13 +273,13 @@ number, and this one cannot be silent:
 - The UI renders a loud `ESTIMATED TOKENS` badge whenever it isn't `count_tokens`, next
   to the meter, not buried in a footer.
 - **`/api/step` refuses to execute against an estimated snapshot.** The agent loop never
-  runs on approximate numbers — only the UI preview does. That's the boundary that makes
+  runs on approximate numbers - only the UI preview does. That's the boundary that makes
   this safe.
 - The budget-invariant test stays skipped. It needs real counts and an estimate cannot
   satisfy it.
 
-Swap to `--tokens` the moment a key exists, and record both figures — the estimate
-versus the measured count — in `DECISIONS.md`. That comparison is itself a useful
+Swap to `--tokens` the moment a key exists, and record both figures - the estimate
+versus the measured count - in `DECISIONS.md`. That comparison is itself a useful
 number.
 
 **Edges.** All five kinds:
@@ -287,13 +287,13 @@ number.
 | Kind | Source | Measured yield |
 |---|---|---|
 | `import` | **Three forms, all required:** relative `from .x import y`; **absolute self-import `from <pkg>.x import y`**; and plain `import <pkg>.x` | fastapi leans almost entirely on the absolute form (92 stmts / 181 names) while httpx is almost entirely relative (204 names). Handling only one form silently guts one repo |
-| `call` | call sites by name: resolve against module-local defs first, then imported names. Noisy; accept it | fastapi 261, httpx 281 — the workhorse on fastapi |
+| `call` | call sites by name: resolve against module-local defs first, then imported names. Noisy; accept it | fastapi 261, httpx 281 - the workhorse on fastapi |
 | `annotation` | parameter and return annotations | **httpx 312, fastapi ~63.** Strong on httpx, which annotates with its own types; weak on fastapi, whose annotations are overwhelmingly `typing`, builtins, and starlette (`Scope`, `Receive`). ~8% of fastapi's 786 annotation expressions resolve in-package. This is correct, not a bug |
 | `inheritance` | `class Foo(Bar)` base clauses | fastapi 54, httpx 56 |
-| `decorator` | decorator names | **fastapi 0, httpx 3 — and 0 is correct.** All 47 of fastapi's decorator applications are `dataclass`, `property`, `classmethod`, `lru_cache`, `wraps` etc. — every one external, nothing in-package to point at. `@app.get` appears in FastAPI's *docs and user code*, never in its own source. Keep the edge kind, expect ~nothing from it, don't debug it |
+| `decorator` | decorator names | **fastapi 0, httpx 3 - and 0 is correct.** All 47 of fastapi's decorator applications are `dataclass`, `property`, `classmethod`, `lru_cache`, `wraps` etc. - every one external, nothing in-package to point at. `@app.get` appears in FastAPI's *docs and user code*, never in its own source. Keep the edge kind, expect ~nothing from it, don't debug it |
 
 Measured yields are from the real snapshots. If a number moves a lot, something
-changed — investigate before assuming the new number is better.
+changed - investigate before assuming the new number is better.
 
 **The re-export trap.** httpx re-exports its whole public surface through
 `__init__.py`. Naive resolution points every edge at that one file and the graph
@@ -307,8 +307,8 @@ way to measure whether it helps. An unmeasurable ranking signal is decoration.
 Don't add it back. Already logged in `DECISIONS.md`.
 
 **Edge rows are unique; repetition becomes `weight`.** Exactly one row per
-`(from, to, kind)`. When the same relationship is observed N times — five call
-sites from `A` to `B` — that is `weight: 5`, not five rows. Repeated rows
+`(from, to, kind)`. When the same relationship is observed N times - five call
+sites from `A` to `B` - that is `weight: 5`, not five rows. Repeated rows
 double-count during graph expansion and silently skew Milestone 2's ranking;
 a weight keeps the signal and makes it usable.
 
@@ -337,23 +337,23 @@ passes for both repos, and prints per repo: total token count, symbol count,
 edge count by kind, and the top 5 files by token weight.
 
 Report those numbers back. The estimates in Section 0 are `chars/4` guesses and
-I want to know how far off they were — that comparison is a `DECISIONS.md` entry.
+I want to know how far off they were - that comparison is a `DECISIONS.md` entry.
 
 ---
 
-## 4. Milestone 2 — packer and its tests
+## 4. Milestone 2 - packer and its tests
 
 **Files:** `lib/pack.ts`, `tests/pack.test.ts`
 
 **Ranking**, two stacked signals:
 
-1. **BM25, field-weighted — not one flat bag of text.** Score `name` and
+1. **BM25, field-weighted - not one flat bag of text.** Score `name` and
    `signature + docFirstLine` as **separate fields with their own length
    normalisation**, then combine: `3 * bm25(name) + 1 * bm25(signature+doc)`.
 
    Concatenating them into one document breaks retrieval on fastapi. Measured:
    fastapi's median indexed length is 12 words, but `FastAPI.__init__` is 2936
-   words and `FastAPI.get` / `.put` / `.post` / `.delete` are 1413 each — because
+   words and `FastAPI.get` / `.put` / `.post` / `.delete` are 1413 each - because
    FastAPI's API is keyword-argument-heavy. Signatures are 79% of indexed text, and
    62 of 510 symbols exceed 100 words. BM25's length normalisation then penalises
    the most important symbols in the repo by roughly 20×: `add_api_route` (164
@@ -361,7 +361,7 @@ I want to know how far off they were — that comparison is a `DECISIONS.md` ent
    ranking #6 while the superset name took #1 and #2.
 
    httpx has **zero** symbols over 100 words, so it shows none of this. Same
-   config, opposite behaviour, purely from API design style — which is why this has
+   config, opposite behaviour, purely from API design style - which is why this has
    to be measured per repo rather than assumed.
 
    Weighting `name` highest is also just correct: it's the highest-signal field and
@@ -380,13 +380,13 @@ I want to know how far off they were — that comparison is a `DECISIONS.md` ent
    `["apirouter", "api", "router"]`. Split on `_`, on camelCase boundaries, and on
    digit boundaries. Keeping the whole token preserves exact-query ranking; adding
    the parts is what makes natural-language tasks work at all.
-2. **Graph expansion** — hops out from the BM25 seeds. This is the feature that
+2. **Graph expansion** - hops out from the BM25 seeds. This is the feature that
    justifies the project: BM25 finds the symbol that *mentions* the concept,
    expansion finds the interface a few hops away that you must not break and that
    mentions it nowhere.
 
    **Use `edge.weight` AND the seed's score.** Contribution must be
-   `seed_score * decay^hops * log(1 + weight)` — all three factors. Logarithmic on
+   `seed_score * decay^hops * log(1 + weight)` - all three factors. Logarithmic on
    weight so a weight-7 edge beats weight-1 without a 7× landslide.
 
    The `seed_score` factor is load-bearing, not decoration. Drop it and every
@@ -399,37 +399,37 @@ I want to know how far off they were — that comparison is a `DECISIONS.md` ent
    This means `graphContributions` must take seeds as `[id, score][]`, not
    `string[]`. A `string[]` signature makes the specified formula impossible.
 
-   **Hop depth is a measurement — but "reached the most symbols" is the wrong
+   **Hop depth is a measurement - but "reached the most symbols" is the wrong
    criterion.** Reaching 252 of fastapi's 510 symbols is a dragnet, not retrieval;
    the product exists to *drop* things. Depth must be chosen on whether the extra
    symbols are ranked *distinguishably*, not on how many there are.
 
-   Only decide depth after the tokenizer and `seed_score` are fixed — both reshape
+   Only decide depth after the tokenizer and `seed_score` are fixed - both reshape
    the score landscape, so any depth chosen before them is chosen on noise. Then
    ask: at each depth, do the newly reached symbols actually get **admitted** to
    the pack at realistic budgets, and does the score spread among them stay wide
    enough to rank? If depth 3's additions never clear the budget, depth 3 is wasted
-   compute — use 2.
+   compute - use 2.
 
-No embeddings, and no churn signal (see Milestone 1). Not a simplification to revisit — they add a bill, a dependency,
+No embeddings, and no churn signal (see Milestone 1). Not a simplification to revisit - they add a bill, a dependency,
 and a store, and expansion is the part that actually beats naive retrieval.
 
 3. **Combine the two signals by RANK, not by raw score.** BM25 scores and graph
-   contributions live on different scales — BM25 reaches ~13 on these repos, graph
+   contributions live on different scales - BM25 reaches ~13 on these repos, graph
    contributions far less. `max(bm25, graph)` therefore lets any weak lexical match
    outrank every graph-discovered symbol, so expansion cannot reach the top of the
    ranking by construction. Measured: expansion is **exactly neutral at r@20** in
-   every configuration while helping at r@50 — and an 8k budget never admits 50
+   every configuration while helping at r@50 - and an 8k budget never admits 50
    symbols, so the lift lands where the product can't use it.
 
    **Resolved by measurement: `max()` wins, RRF was tried and rejected.** RRF
-   (`Σ 1/(60 + rank)`) regressed r@20 from 0.748 to 0.607 — it lets graph-discovered
+   (`Σ 1/(60 + rank)`) regressed r@20 from 0.748 to 0.607 - it lets graph-discovered
    symbols crowd out stronger lexical matches at the top. Under `max()`, expansion is
    neutral at r@20 and **positive at r@50** (overall 0.75 → 0.83; httpx 0.62 → 0.73).
    Keep `max()`. Do not revisit fusion without a new hypothesis and an eval run.
 
    A weighted fusion (BM25 weighted above graph) is the obvious untried variant.
-   Left deliberately untried — name it as future work rather than burning the
+   Left deliberately untried - name it as future work rather than burning the
    remaining time tuning toward a nicer number.
 
 ### What the budget is actually spent on
@@ -445,14 +445,14 @@ fastapi and 11 on httpx. So:
 
 **The whole repo's shape fits in roughly 8–16k tokens.** Admission is therefore nearly
 free; the scarce resource is **promotion to `full`**. One full body for
-`routing.py::APIRouter.add_api_route` costs several hundred tokens — more than a
+`routing.py::APIRouter.add_api_route` costs several hundred tokens - more than a
 hundred skeletons.
 
 So the packer's real question is not "which symbols make the cut" but "which handful of
 bodies can you afford to read." Build the UI and the meter around that: the eviction
 list matters far less than the promotion list, and the interesting scarcity is bodies.
 
-(Costs are `chars/4` estimates — real `count_tokens` figures will shift them, but not
+(Costs are `chars/4` estimates - real `count_tokens` figures will shift them, but not
 by the order of magnitude that would change this conclusion.)
 
 **Admission.** Three tiers at increasing cost:
@@ -465,11 +465,11 @@ by the order of magnitude that would change this conclusion.)
 
 Greedy fill by `score / tokens`, promoting high scorers toward `full` while
 budget remains. Pins are admitted at `full` first and never evicted. Evicts are
-never admitted. Every eviction records a reason — the eviction list is a
+never admitted. Every eviction records a reason - the eviction list is a
 displayed feature, not a byproduct.
 
 **Pack to `budget * 0.98`, not `budget`.** Per-symbol counts include their
-separator (§3), so summed counts land very close to the true total — but not
+separator (§3), so summed counts land very close to the true total - but not
 exactly, because tokens can still merge at joins. A 2% reserve absorbs that.
 Test 1 below measures the real drift; once you have a number, tune the reserve to
 it and record the measurement in `DECISIONS.md`. Don't leave it a guess.
@@ -479,11 +479,11 @@ docstring and comment, `param_functions.py` is 55%. Dropping to `docFirstLine`
 cuts ~40% off FastAPI's largest file before a single relevance decision is made.
 Keep the tier boundary exactly where Section 2 puts it.
 
-**Tests** — `tests/pack.test.ts`, `node:test` + `node:assert`:
+**Tests** - `tests/pack.test.ts`, `node:test` + `node:assert`:
 
 1. **Budget invariant.** For all four budgets across both repos: assemble the
    pack, then call `count_tokens` on **the fully rendered pack string** and assert
-   the result ≤ budget. Not the sum of per-symbol counts — the actual count of the
+   the result ≤ budget. Not the sum of per-symbol counts - the actual count of the
    actual string. Summed counts are what the packer optimizes against; this test
    exists to prove those sums don't lie. Print the drift (summed vs actual) so the
    §4 reserve can be set from a measurement.
@@ -503,17 +503,17 @@ budget.
 
 ---
 
-## 4.5. Milestone 2.5 — the hand-labelled eval
+## 4.5. Milestone 2.5 - the hand-labelled eval
 
 **Files:** `eval/tasks.json`, `eval/score.ts`
 
 Every ranking decision so far has been a guess that the next bugfix invalidated.
 Hop depth has been chosen three times on three different score landscapes, none
-against ground truth. Three real bugs — the underscore tokenizer, the dropped
-`seed_score`, the BM25 length bias — were all found by ad-hoc measurement rather
+against ground truth. Three real bugs - the underscore tokenizer, the dropped
+`seed_score`, the BM25 length bias - were all found by ad-hoc measurement rather
 than by a test. That stops here.
 
-**`eval/tasks.json`** — 10 tasks, 5 per repo:
+**`eval/tasks.json`** - 10 tasks, 5 per repo:
 
 ```jsonc
 [{
@@ -527,12 +527,12 @@ than by a test. That stops here.
 }]
 ```
 
-**Derive the labels by reading the code — never by running the packer.** Use file
+**Derive the labels by reading the code - never by running the packer.** Use file
 reads, grep, and git history to decide what a competent engineer would need. If the
 labels come from `pack()` or `bm25Scores()` output, the eval measures the retriever
 against itself and is worth nothing. This is the single rule that makes it valid.
 
-**`eval/score.ts`** — reports **recall@k on ranked order** (k = 20 and 50), per task
+**`eval/score.ts`** - reports **recall@k on ranked order** (k = 20 and 50), per task
 and averaged, for three configurations: BM25 only, BM25 + graph expansion, and
 expansion at each hop depth.
 
@@ -546,7 +546,7 @@ exists.
 
 ---
 
-## 5. Milestone 3 — API routes
+## 5. Milestone 3 - API routes
 
 **Files:** `app/api/pack/route.ts`, `app/api/step/route.ts`, `app/api/tool/route.ts`
 
@@ -556,10 +556,10 @@ Vercel's function timeout while one turn never does; interrupt becomes "the
 browser stops calling"; and pin/evict becomes "the next request body differs",
 with no server session to reconcile.
 
-- `POST /api/pack` — `PackRequest` → `PackResponse`.
-- `POST /api/step` — `StepRequest` → SSE stream of one agent turn. Returns any
+- `POST /api/pack` - `PackRequest` → `PackResponse`.
+- `POST /api/step` - `StepRequest` → SSE stream of one agent turn. Returns any
   `tool_use` blocks to the client.
-- `POST /api/tool` — executes one read-only tool against the snapshot.
+- `POST /api/tool` - executes one read-only tool against the snapshot.
 
 Tools available to the agent: `read_symbol(id)`, `read_file(path, range?)`,
 `list_symbols(file)`. Read-only. No writes, no shell, no network.
@@ -567,25 +567,25 @@ Tools available to the agent: `read_symbol(id)`, `read_file(path, range?)`,
 **`read_file` must be served from the snapshot, not from `vendor/`.** `vendor/` is
 gitignored and never deployed (§3), so a disk-backed `read_file` works locally and
 404s on every call in production. Shipping a tool that always fails is worse than
-omitting it — the model will call it, fail, retry, and burn turns discovering that.
+omitting it - the model will call it, fail, retry, and burn turns discovering that.
 
 **Serve it from `snapshot.files[path]`, which stores the exact source.** An earlier
 version of this brief said to reconstruct file content by concatenating a file's
 symbols. That was wrong and was measured to fail two ways at once on
 `httpx/_auth.py`:
 
-- **Lossy** — imports and module-level code sit outside any function or class symbol,
+- **Lossy** - imports and module-level code sit outside any function or class symbol,
   so they disappear. `import typing` and `from ._models import` were both absent. An
   agent that can't see the imports may propose adding one that already exists, and
   this product's output is diffs.
-- **Duplicative** — 160% of the real length (18,992 vs 11,907 chars), because a class
+- **Duplicative** - 160% of the real length (18,992 vs 11,907 chars), because a class
   symbol's `body` contains its methods *and* each method is separately a symbol.
 
 Storing raw text costs ~1.1 MB (committed snapshots go ~2.13 MB → ~3.26 MB), which is
-nothing for Vercel, and it's exact — which a diff-producing tool needs. Getting
+nothing for Vercel, and it's exact - which a diff-producing tool needs. Getting
 concatenation right is fiddlier than storing the text.
 
-Keep validating `path` against snapshot keys exactly as now — that's what makes
+Keep validating `path` against snapshot keys exactly as now - that's what makes
 traversal structurally impossible rather than filtered.
 
 **Provider: Google Gemini free tier.** Chosen because it is the only free tier whose
@@ -594,17 +594,17 @@ per-minute token allowance is larger than this product's own context pack:
 | provider free tier | TPM | fits a 32k pack? |
 |---|---|---|
 | **Gemini** | **250,000** | yes, with room for multi-turn history |
-| Groq | 6,000 | no — one 8k pack exceeds the whole minute |
+| Groq | 6,000 | no - one 8k pack exceeds the whole minute |
 | Anthropic | none (paid only) | n/a |
 
 **Use `gemini-3.6-flash`. Verified working against a real key on 2026-08-18.**
 
-Do not use `gemini-2.5-flash` — it returns 404 `"no longer available to new users"`
+Do not use `gemini-2.5-flash` - it returns 404 `"no longer available to new users"`
 even though it still appears in the `models` listing, so the listing is not an
 availability signal. Do not use the `gemini-flash-latest` alias either; it returned
 503 `"high demand"`. Pin an explicit version.
 
-1,048,576 input token limit, 65,536 output — the 32k pack is not remotely near the
+1,048,576 input token limit, 65,536 output - the 32k pack is not remotely near the
 ceiling.
 
 **Model configuration**, server-side and not client-settable:
@@ -617,15 +617,15 @@ ceiling.
 ```
 
 Stream the turn. Gemini's free tier does not give the ~0.1x cached-prefix economics
-Anthropic does, so multi-turn resends the pack at full token cost — fine at 250k TPM,
+Anthropic does, so multi-turn resends the pack at full token cost - fine at 250k TPM,
 but it means the run's TPM footprint grows with turn count. Track it.
 
 **Honest tradeoff to state in the write-up:** `gemini-2.5-flash` produces weaker code
 diffs than a frontier model. The pack is the product here and the agent is the consumer,
-so this is acceptable — but say so rather than letting a reviewer assume otherwise. The
+so this is acceptable - but say so rather than letting a reviewer assume otherwise. The
 pack format is provider-agnostic; swapping the consumer is a config change.
 
-### Trust boundary — do not simplify any of this
+### Trust boundary - do not simplify any of this
 
 `/api/step` is a public endpoint holding an API key that bills a real card.
 Treat every field as hostile.
@@ -642,7 +642,7 @@ Treat every field as hostile.
 - **Validate tool arguments against snapshot keys.** Lookups are JSON-key based
   so path traversal doesn't apply, but reject unknown keys explicitly.
 
-### Spend cap — three layers
+### Spend cap - three layers
 
 | Layer | Mechanism |
 |---|---|
@@ -651,12 +651,12 @@ Treat every field as hostile.
 | Provider quota | Gemini free tier is **org-wide**: 250k TPM, 10 RPM, 250 RPD |
 
 The third layer is the one that actually bites on a free tier. Quota is shared across
-every visitor, so two reviewers clicking at once will 429 each other — which makes the
+every visitor, so two reviewers clicking at once will 429 each other - which makes the
 **replay fallback mandatory, not optional**. On a 429, play back a recorded run and label
 it as a replay. There is no dollar ceiling to enforce because there is no dollar cost.
 
 **Cost is a PROJECTION, not a bill.** The demo runs on Gemini's free tier, so actual
-spend is $0. Do not display $0 — that throws away the product's whole point. Instead,
+spend is $0. Do not display $0 - that throws away the product's whole point. Instead,
 price the pack against published rates for several models and show what it *would* cost:
 
 | model | $/MTok in | $/MTok out |
@@ -672,14 +672,14 @@ one-word reply: `promptTokenCount: 6`, `candidatesTokenCount: 1`,
 
 So output tokens = `candidatesTokenCount + thoughtsTokenCount`. Summing only
 `candidatesTokenCount` is the same class of bug as summing Anthropic's uncached
-`input_tokens` — it silently reports a fraction of the truth. Prefer `totalTokenCount`
+`input_tokens` - it silently reports a fraction of the truth. Prefer `totalTokenCount`
 as the cross-check: it should equal prompt + candidates + thoughts. A cost *model* across providers is a better artifact than one
 invoice, and it makes the provider choice a footnote rather than a limitation.
 
 **Do not use the Task Budgets beta for this.** It looks like the right tool and
 isn't: it's advisory (the model sees a countdown and paces itself, nothing stops
 it) and its minimum is 20,000 tokens, above the per-run budget. Wrong instrument
-for a hard dollar ceiling. This is already a `DECISIONS.md` entry — don't
+for a hard dollar ceiling. This is already a `DECISIONS.md` entry - don't
 re-litigate it in code.
 
 Over the cap → serve a recorded replay rather than an error, so the demo
@@ -691,17 +691,17 @@ global cap falls back to replay instead of erroring.
 
 ---
 
-## 6. Milestone 4 — UI, replay, deploy
+## 6. Milestone 4 - UI, replay, deploy
 
 **Two panels, one screen.** No routing, no nav, no settings page.
 
-**Left — context.** Budget slider (4k/8k/16k/32k). Token meter broken down by
+**Left - context.** Budget slider (4k/8k/16k/32k). Token meter broken down by
 **signature / docstring / body**, because that breakdown is where the
 compression actually comes from and hiding it defeats the product. Symbol rows
 grouped by file, each showing tier, token cost, and its `reason`. Eviction list
 with reasons. Pin, evict, expand. Changing a pin re-packs and shows the delta.
 
-**Right — run.** Streamed agent output: plan, then per-file proposed diffs. Live
+**Right - run.** Streamed agent output: plan, then per-file proposed diffs. Live
 cost readout in dollars. Interrupt button.
 
 **Replay.** Every live run streams to Redis as it executes. When the cap trips or
@@ -724,12 +724,12 @@ mid-run, and pin/evict visibly changes the pack.
 
 Do not build these. They are deliberate cuts, documented as such.
 
-- Recall evaluation against **PR-mined** ground truth (the automated version — a
+- Recall evaluation against **PR-mined** ground truth (the automated version - a
   hand-labelled 10-task set is now **in** scope, see Milestone 2.5)
 - Arbitrary repo URLs or any live indexing
 - Embeddings-based ranking, vector stores
 - Churn / git-history ranking signals
-- Committing `vendor/` — snapshots only
+- Committing `vendor/` - snapshots only
 - Any language other than Python
 - Applying edits to the indexed repos, writing to `vendor/`
 - Any git operation at all (see §1), including `git init` and `.gitignore` edits

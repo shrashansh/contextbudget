@@ -1,5 +1,5 @@
 # Upstream repos we index. Fetch with scripts/fetch_repos.sh.
-# 57 MB of someone else's source doesn't belong in this repo — only the
+# 57 MB of someone else's source doesn't belong in this repo - only the
 # parsed snapshots/*.json do.
 vendor/
 

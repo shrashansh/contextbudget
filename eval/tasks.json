@@ -1,0 +1,105 @@
+[
+  {
+    "repo": "fastapi",
+    "task": "add per-route rate limiting",
+    "expect": [
+      "fastapi/routing.py::APIRouter.add_api_route",
+      "fastapi/routing.py::APIRoute",
+      "fastapi/param_functions.py::Depends",
+      "fastapi/dependencies/utils.py::solve_dependencies",
+      "fastapi/dependencies/models.py::Dependant"
+    ],
+    "why": "rate limiting is a dependency: attach Depends in add_api_route, stored on APIRoute, resolved per-request by solve_dependencies building a Dependant graph"
+  },
+  {
+    "repo": "fastapi",
+    "task": "register a custom exception handler",
+    "expect": [
+      "fastapi/applications.py::FastAPI.exception_handler",
+      "fastapi/exceptions.py::HTTPException",
+      "fastapi/exceptions.py::RequestValidationError"
+    ],
+    "why": "the @app.exception_handler decorator registers the handler; the handler switches on the exception types you'd override (HTTPException, RequestValidationError)"
+  },
+  {
+    "repo": "fastapi",
+    "task": "add a WebSocket endpoint",
+    "expect": [
+      "fastapi/applications.py::FastAPI.websocket",
+      "fastapi/applications.py::FastAPI.add_api_websocket_route",
+      "fastapi/routing.py::APIRouter.add_api_websocket_route",
+      "fastapi/routing.py::APIWebSocketRoute"
+    ],
+    "why": "the @app.websocket decorator and its registrar build an APIWebSocketRoute; the websocket route class is the endpoint's wrapper"
+  },
+  {
+    "repo": "fastapi",
+    "task": "include a sub-router with a URL prefix",
+    "expect": [
+      "fastapi/routing.py::APIRouter.include_router",
+      "fastapi/applications.py::FastAPI.include_router",
+      "fastapi/routing.py::APIRouter"
+    ],
+    "why": "app.include_router(router, prefix=...) is how a sub-router is mounted; both APIRouter.include_router and FastAPI.include_router accept the router + prefix, and APIRouter is the sub-router class"
+  },
+  {
+    "repo": "fastapi",
+    "task": "add a request/response middleware",
+    "expect": [
+      "fastapi/applications.py::FastAPI.middleware",
+      "fastapi/applications.py::FastAPI.build_middleware_stack"
+    ],
+    "why": "@app.middleware('http') wraps a dispatch function; build_middleware_stack is where the ASGI stack is assembled"
+  },
+  {
+    "repo": "httpx",
+    "task": "make a POST request with a JSON body",
+    "expect": [
+      "httpx/_api.py::post",
+      "httpx/_api.py::request",
+      "httpx/_models.py::Request",
+      "httpx/_models.py::Response"
+    ],
+    "why": "httpx.post delegates to httpx.request; the Request model holds json=content, Response is the returned object"
+  },
+  {
+    "repo": "httpx",
+    "task": "send a custom authentication header",
+    "expect": [
+      "httpx/_auth.py::Auth",
+      "httpx/_auth.py::BasicAuth",
+      "httpx/_client.py::Client"
+    ],
+    "why": "subclass Auth (auth_flow) for custom auth; BasicAuth is the reference impl; Client applies auth per request via _build_auth"
+  },
+  {
+    "repo": "httpx",
+    "task": "set a timeout and connection limits",
+    "expect": [
+      "httpx/_config.py::Timeout",
+      "httpx/_config.py::Limits",
+      "httpx/_client.py::Client"
+    ],
+    "why": "Timeout and Limits are the config objects; Client.__init__ accepts timeout=/limits= and threads them into the transport"
+  },
+  {
+    "repo": "httpx",
+    "task": "stream a large response body",
+    "expect": [
+      "httpx/_api.py::stream",
+      "httpx/_client.py::Client.stream",
+      "httpx/_models.py::Response.iter_bytes"
+    ],
+    "why": "httpx.stream and Client.stream are the streaming entry points; Response.iter_bytes is the body iterator used for large responses"
+  },
+  {
+    "repo": "httpx",
+    "task": "use a mock transport in tests",
+    "expect": [
+      "httpx/_transports/mock.py::MockTransport",
+      "httpx/_transports/base.py::BaseTransport",
+      "httpx/_client.py::Client._init_transport"
+    ],
+    "why": "MockTransport implements a handler transport; BaseTransport is its base class; Client._init_transport adopts a passed transport= in __init__"
+  }
+]
